@@ -154,6 +154,14 @@ FORCE_ALLOW = {
     '@@||repo.anaconda.com^',
     '@@||conda.anaconda.org^',
 ],
+'IP 查询与网络诊断工具（面板定位/延迟测速要用；ShadowWhisperer 把公共 IP API 全按指纹追踪拦了）': [
+    '@@||ip.sb^',
+    '@@||ipify.org^',
+    '@@||ipinfo.io^',
+    '@@||ipapi.is^',
+    '@@||ipwho.is^',
+    '@@||ipip.net^',
+],
 '社媒登录回跳端点（社区列表会拦掉，导致无法登录）': [
     '@@||an.facebook.com^',
     '@@||tr.facebook.com^',
