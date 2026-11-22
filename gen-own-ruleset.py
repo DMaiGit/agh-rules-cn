@@ -124,6 +124,18 @@ FORCE_ALLOW = {
     '@@||repo.anaconda.com^',
     '@@||conda.anaconda.org^',
 ],
+'社媒登录回跳端点（社区列表会拦掉，导致无法登录）': [
+    '@@||an.facebook.com^',
+    '@@||tr.facebook.com^',
+    '@@||m.facebook.com^',
+    '@@||touch.facebook.com^',
+    '@@||b-api.facebook.com^',
+    '@@||edge-m.facebook.com^',
+    '@@||graph.facebook.com^',
+    '@@||graph-video.facebook.com^',
+    '@@||graph.facebook.net^',
+    '@@||connect.facebook.net^',
+],
 'AI 服务（Claude / ChatGPT / Gemini 及其 API）': [
     '@@||anthropic.com^',
     '@@||api.anthropic.com^',
@@ -168,8 +180,6 @@ FORCE_BLOCK = {
     '||star-nohsts.c10r.facebook.com^',
     '||analytics.facebook.com^',
     '||ads.facebook.com^',
-    '||an.facebook.com^',
-    '||tr.facebook.com^',
 ],
 '字节系日志上报 / 归因（log / rtlog / mon 全系列）': [
     '||log.amemv.com^',

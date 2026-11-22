@@ -118,6 +118,18 @@
 @@||repo.anaconda.com^$important
 @@||conda.anaconda.org^$important
 
+! --- 社媒登录回跳端点（社区列表会拦掉，导致无法登录） ---
+@@||an.facebook.com^$important
+@@||tr.facebook.com^$important
+@@||m.facebook.com^$important
+@@||touch.facebook.com^$important
+@@||b-api.facebook.com^$important
+@@||edge-m.facebook.com^$important
+@@||graph.facebook.com^$important
+@@||graph-video.facebook.com^$important
+@@||graph.facebook.net^$important
+@@||connect.facebook.net^$important
+
 ! --- AI 服务（Claude / ChatGPT / Gemini 及其 API） ---
 @@||anthropic.com^$important
 @@||api.anthropic.com^$important
@@ -161,8 +173,6 @@
 ||star-nohsts.c10r.facebook.com^$important
 ||analytics.facebook.com^$important
 ||ads.facebook.com^$important
-||an.facebook.com^$important
-||tr.facebook.com^$important
 
 ! --- 字节系日志上报 / 归因（log / rtlog / mon 全系列） ---
 ||log.amemv.com^$important
