@@ -295,6 +295,21 @@ FORCE_BLOCK = {
     '||sc-static.net^',
     '||sentry.io^',
 ],
+'CRM / 营销自动化 / 邮件追踪': [
+    '||hubspot.com^',
+    '||klaviyo.com^',
+    '||marketo.com^',
+    '||pardot.com^',
+    '||customer.io^',
+    '||mailchimp.com^',
+    '||sendgrid.net^',
+],
+'被社区列表 @@ 放行的广告平台（用 $important 反制）': [
+    '||api.taboola.com^',
+    '||trc.taboola.com^',
+    '||cdn.taboola.com^',
+    '||ads.taboola.com^',
+],
 }
 
 # ==================================================================

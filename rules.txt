@@ -135,3 +135,18 @@
 ||bat.bing.com^$important
 ||sc-static.net^$important
 ||sentry.io^$important
+
+! --- CRM / 营销自动化 / 邮件追踪 ---
+||hubspot.com^$important
+||klaviyo.com^$important
+||marketo.com^$important
+||pardot.com^$important
+||customer.io^$important
+||mailchimp.com^$important
+||sendgrid.net^$important
+
+! --- 被社区列表 @@ 放行的广告平台（用 $important 反制） ---
+||api.taboola.com^$important
+||trc.taboola.com^$important
+||cdn.taboola.com^$important
+||ads.taboola.com^$important
