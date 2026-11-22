@@ -1,18 +1,31 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""生成自有 AGH 规则集 (AdGuard 语法)。
+"""生成自有 AGH 规则集 —— v2 双产物架构 (2026-11-22 实测校正)。
 
-设计原则 —— 与社区列表的根本差异:
-  1. 意图分层: 社区列表是"发现即拉黑"的扁平集合, 无法表达"同一主域下广告子域要拦、
-     功能子域要放行"。本规则集显式分为业务必需放行层 / 纯追踪拦截层。
-  2. 强制语义: 放行层统一用 @@||x^$important, 拦截层统一用 ||x^$important。
-     $important 可压过任何其他规则(含社区列表里的 @@ 放行与 || 拦截),
-     这是社区列表完全不具备的能力 —— 社区只能靠"别把域名列进黑名单"被动规避。
-  3. 精确粒度: 放行精确到具体主机名, 不做整域放行 (避免连带放过追踪端点);
-     拦截用 || 形式覆盖子域树 (社区多为此形式)。
-  4. 可审计: 每条规则带分类注释, 生成脚本即真源, 可复现。
+【实测发现的 AGH 实现限制】(在旁路由上做的对照实验):
+  | 规则位置            | @@||x^$important 放行 | ||x^$important 拦截 |
+  |---------------------|-----------------------|---------------------|
+  | user_rules (自定义) | ✅ 生效              | ✅ 生效             |
+  | 外部列表文件        | ❌ 无效              | ✅ 生效             |
 
-输出: rules.txt (AGH 可直接订阅的 AdGuard 语法规则集)
+  证据: 同一条 @@||an.facebook.com^$important
+        放 user_rules  → 57.144.96.141 (放行成功)
+        放列表文件      → 0.0.0.0        (仍被社区列表拦截)
+  同一条 ||api.taboola.com^$important
+        放列表文件      → 0.0.0.0 (成功压过 AdGuard DNS filter 的 @@||api.taboola.com^ 放行)
+
+因此产出两个文件:
+  rules.txt       —— 订阅用外部列表。只含拦截规则 (||x^$important)。
+                     这类规则在列表文件里依然生效, 且能压过社区列表的 @@ 放行。
+  user_rules.yaml —— 业务必需放行规则 (@@||x^$important), 需注入 AGH 的
+                     user_rules 段才能生效。
+
+与社区列表的根本差异:
+  1) 意图分层 —— 社区是扁平"拉黑集合", 无法表达"同主域下广告子域要拦、
+     功能子域要放行"; 本列表显式分为业务放行层与追踪拦截层。
+  2) 强制语义 —— 拦截层用 ||x^$important, 压过社区列表里的 @@ 放行。
+  3) 精确粒度 —— 放行精确到主机名, 不做整域放行; 拦截用 || 覆盖子域树。
+  4) 可审计   —— 每条规则带分类注释, 生成脚本即真源, 可复现。
 """
 import os, re, datetime
 
@@ -313,29 +326,18 @@ lines.append('!')
 lines.append('! 与社区列表的根本差异:')
 lines.append('!   1) 意图分层 —— 社区是扁平"拉黑集合", 无法表达"同主域下广告子域要拦、')
 lines.append('!      功能子域要放行"; 本列表显式分为业务放行层与追踪拦截层。')
-lines.append('!   2) 强制语义 —— 放行层用 @@||x^$important, 拦截层用 ||x^$important。')
-lines.append('!      $important 可压过其他任何规则(包括社区列表里的 @@ 放行与 || 拦截),')
-lines.append('!      这是社区列表不具备的能力: 社区只能靠"别把域名列进黑名单"被动规避。')
+lines.append('!   2) 强制语义 —— 拦截层用 ||x^$important, 压过社区列表里的 @@ 放行。')
+lines.append('!      实测: api.taboola.com 从 151.101.65.44 → 0.0.0.0。')
 lines.append('!   3) 精确粒度 —— 放行精确到主机名, 不做整域放行; 拦截用 || 覆盖子域树。')
 lines.append('!   4) 可审计   —— 每条规则带分类注释, 生成脚本即真源。')
 lines.append('! ============================================================')
 lines.append('')
-
-lines.append('! ###########################################################')
-lines.append('! ## 第一层: 业务必需放行 (FORCE-ALLOW)')
-lines.append('! ## @@||x^$important —— 强制放行, 可压过社区列表的拦截')
-lines.append('! ###########################################################')
+lines.append('! NOTE: 业务必需放行规则在 user_rules.yaml。')
+lines.append('!       实测确认 $important 放行在外部列表文件中不生效, 仅 user_rules 有效。')
 lines.append('')
-n_allow = 0
-for cat, rules in FORCE_ALLOW.items():
-    lines.append('! --- ' + cat + ' ---')
-    for r in rules:
-        lines.append(add_imp_allow(r))
-        n_allow += 1
-    lines.append('')
 
 lines.append('! ###########################################################')
-lines.append('! ## 第二层: 纯追踪 / 垃圾广告拦截 (FORCE-BLOCK)')
+lines.append('! ## 纯追踪 / 垃圾广告拦截 (FORCE-BLOCK)')
 lines.append('! ## ||x^$important —— 强制拦截, 可压过社区列表的 @@ 放行')
 lines.append('! ###########################################################')
 lines.append('')
@@ -348,7 +350,22 @@ for cat, rules in FORCE_BLOCK.items():
     lines.append('')
 
 text = '\n'.join(lines).rstrip() + '\n'
-path = os.path.join(OUT_DIR, 'rules.txt')
+rules_path = os.path.join(OUT_DIR, 'rules.txt')
+
+# ---------- user_rules.yaml: 业务放行规则 (需注入 AGH 的 user_rules 段) ----------
+ur_lines = ['# 自有 AGH 规则集 — 业务必需放行层',
+            '# 注入方式: 替换 AGH 配置 user_rules: 段的全部内容',
+            '# 原因: 实测确认 $important 放行仅在 user_rules 中生效',
+            '# 生成器: gen-own-ruleset.py (请勿手改)',
+            '']
+n_allow = 0
+for cat, rules in FORCE_ALLOW.items():
+    ur_lines.append("  - '! --- " + cat + " ---'")
+    for r in rules:
+        ur_lines.append("  - '" + add_imp_allow(r).replace("'", "''") + "'")
+        n_allow += 1
+ur_text = '\n'.join(ur_lines) + '\n'
+ur_path = os.path.join(OUT_DIR, 'user_rules.yaml')
 
 ap = argparse.ArgumentParser()
 ap.add_argument('--check', action='store_true',
@@ -357,29 +374,30 @@ ap.add_argument('--out-dir', default=OUT_DIR, help='输出目录')
 args = ap.parse_args()
 
 if args.check:
-    # CI 模式: 与仓库中的 rules.txt 比对
-    repo_rules = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'rules.txt')
-    if not os.path.exists(repo_rules):
-        print('✗ 未找到 rules.txt')
-        sys.exit(1)
-    cur = open(repo_rules, encoding='utf-8').read()
-    if cur != text:
-        print('✗ rules.txt 与生成器输出不一致, 请运行 python3 gen-own-ruleset.py 后提交')
-        sys.exit(1)
-    print('✓ rules.txt 与生成器输出一致')
-    sys.exit(0)
+    # CI 模式: 与仓库中的产物比对
+    ok = True
+    for fn, content in [(os.path.basename(rules_path), text),
+                         (os.path.basename(ur_path), ur_text)]:
+        repo = os.path.join(os.path.dirname(os.path.abspath(__file__)), fn)
+        if not os.path.exists(repo):
+            print(f'✗ 未找到 {fn}'); ok = False; continue
+        if open(repo, encoding='utf-8').read() != content:
+            print(f'✗ {fn} 与生成器输出不一致, 请运行 python3 gen-own-ruleset.py 后提交')
+            ok = False
+    sys.exit(0 if ok else 1)
 
-open(path, 'w', encoding='utf-8').write(text)
+open(rules_path, 'w', encoding='utf-8').write(text)
+open(ur_path, 'w', encoding='utf-8').write(ur_text)
 
 print('=== 生成完成 ===')
-print(f'  输出: {path}')
-print(f'  放行 {n_allow} 条 · 拦截 {n_block} 条 · 合计 {n_allow+n_block} 条')
-print(f'  大小: {os.path.getsize(path)} 字节')
+print(f'  rules.txt        拦截 {n_block} 条 ({os.path.getsize(rules_path)} 字节) — 订阅用')
+print(f'  user_rules.yaml  放行 {n_allow} 条 ({os.path.getsize(ur_path)} 字节) — 注入 user_rules')
 
 allr = [l for l in lines if l and not l.startswith('!')]
-dup = sorted({r for r in allr if allr.count(r) > 1})
+all_allow = [r for rs in FORCE_ALLOW.values() for r in rs]
+dup = sorted({r for r in allr + all_allow if (allr + all_allow).count(r) > 1})
 print(f'  重复规则: {dup if dup else "无"}')
-bad = [r for r in allr if not re.match(r'^(@@)?\|\|[^*]+\^(\$[a-z,]+)?$', r)]
+bad = [r for r in allr + all_allow if not re.match(r'^(@@)?\|\|[^*]+\^(\$[a-z,]+)?$', r)]
 print(f'  语法异常: {bad if bad else "无"}')
 
 # 冲突检查: 同一域名不能同时出现在放行层与拦截层
@@ -387,7 +405,7 @@ def dom_of(r):
     m = re.match(r'^(@@)?\|\|([^*]+)\^', r)
     return m.group(2).lower() if m else None
 
-allow_d = {dom_of(r) for r in allr if r.startswith('@@') and dom_of(r)}
+allow_d = {dom_of(r) for r in all_allow if dom_of(r)}
 block_r = [r for r in allr if not r.startswith('@@')]
 conflict = [r for r in block_r if dom_of(r) in allow_d]
 if conflict:
@@ -396,11 +414,8 @@ if conflict:
     sys.exit(1)
 print('  放行/拦截冲突: 无')
 
-# 放行层不得是整域放行 (会连带放过追踪端点)
-whole = [r for r in allr if r.startswith('@@') and dom_of(r) and '.' not in dom_of(r).split('/')[0]]
-print(f'  整域放行检查: {"无 ✓" if not whole else whole}')
 print()
 print('  业务覆盖统计:')
-for d in ['tiktok','stripe','paypal','amazon','etsy','shopify','github','anthropic','netflix','douyin']:
-    c = sum(1 for r in allr if d in r.lower() and r.startswith('@@'))
+for d in ['tiktok','stripe','paypal','amazon','etsy','shopify','github','anthropic','netflix','douyin','facebook']:
+    c = sum(1 for r in all_allow if d in r.lower())
     if c: print(f'    {d:<12} 放行 {c} 条')
