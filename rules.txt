@@ -1,0 +1,266 @@
+! ============================================================
+! 自有 AGH 规则集 — 面向中文网络环境的业务感知过滤
+! 生成日期: 2026-11-22
+! 生成器: gen-own-ruleset.py (规则真源, 请勿直接手改本文件)
+! 语法: AdGuard Home Adblock 语法 (与浏览器扩展兼容)
+!
+! 与社区列表的根本差异:
+!   1) 意图分层 —— 社区是扁平"拉黑集合", 无法表达"同主域下广告子域要拦、
+!      功能子域要放行"; 本列表显式分为业务放行层与追踪拦截层。
+!   2) 强制语义 —— 放行层用 @@||x^$important, 拦截层用 ||x^$important。
+!      $important 可压过其他任何规则(包括社区列表里的 @@ 放行与 || 拦截),
+!      这是社区列表不具备的能力: 社区只能靠"别把域名列进黑名单"被动规避。
+!   3) 精确粒度 —— 放行精确到主机名, 不做整域放行; 拦截用 || 覆盖子域树。
+!   4) 可审计   —— 每条规则带分类注释, 生成脚本即真源。
+! ============================================================
+
+! ###########################################################
+! ## 第一层: 业务必需放行 (FORCE-ALLOW)
+! ## @@||x^$important —— 强制放行, 可压过社区列表的拦截
+! ###########################################################
+
+! --- 投放 / 广告后台（业务必需，广告主无法登录投放平台等于无法投放） ---
+@@||ads.google.com^$important
+@@||adservice.google.com^$important
+@@||googleadservices.com^$important
+@@||googlesyndication.com^$important
+@@||googleads.g.doubleclick.net^$important
+@@||ads-twitter.com^$important
+@@||amazon-adsystem.com^$important
+@@||shie.com.cn^$important
+@@||ads.tiktok.com^$important
+@@||ads-sg.business-tiktok.com^$important
+@@||ads-va.business-tiktok.com^$important
+@@||ads-api.tiktok.com^$important
+@@||ads-tiktok.com^$important
+@@||ads.union.tiktokv.com^$important
+@@||business.tiktok.com^$important
+@@||business-api.tiktok.com^$important
+
+! --- TikTok / 抖音 主站 API 与内容分发（精确放行，不用整域，避免连带放过 ads 子域） ---
+@@||analytics.tiktok.com^$important
+@@||api.tiktokv.com^$important
+@@||api16-normal-useast5.us.tiktokv.com^$important
+@@||api22-normal-useast2.us.tiktokv.com^$important
+@@||api16-normal-useast1.us.tiktokv.com^$important
+@@||api19-normal-useast5.us.tiktokv.com^$important
+@@||api21-normal-useast5.us.tiktokv.com^$important
+@@||api16-normal-alisg1.tiktokv.com^$important
+@@||api16-normal-useast5.tiktokv.com^$important
+@@||api16-normal-c-useast1a.tiktokv.com^$important
+@@||v16-webapp.tiktokv.com^$important
+@@||v19-webapp.tiktokv.com^$important
+@@||v16-webapp-prime.tiktokv.com^$important
+@@||v19-webapp-prime.tiktokv.com^$important
+@@||tiktokcdn-us.com^$important
+@@||tiktokcdn.com^$important
+@@||tiktokv-us.com^$important
+@@||mcs.tiktokv.com^$important
+@@||mcs-us.tiktokv.com^$important
+@@||mcs-ttp2.tiktokv.com^$important
+
+! --- 支付链路（Stripe / PayPal / Wise / Payoneer 的回调与 API） ---
+@@||js.stripe.com^$important
+@@||r.stripe.com^$important
+@@||m.stripe.com^$important
+@@||q.stripe.com^$important
+@@||t.stripe.com^$important
+@@||api.stripe.com^$important
+@@||js.stripe.network^$important
+@@||m.stripe.network^$important
+@@||checkout.stripe.com^$important
+@@||paypal.com^$important
+@@||www.paypal.com^$important
+@@||api.paypal.com^$important
+@@||api-m.paypal.com^$important
+@@||www.sandbox.paypal.com^$important
+@@||wise.com^$important
+@@||www.wise.com^$important
+@@||transferwise.com^$important
+@@||api.wise.com^$important
+@@||payoneer.com^$important
+@@||www.payoneer.com^$important
+@@||api.payoneer.com^$important
+
+! --- 电商后台与卖家工具（登录态、商品同步、订单查询） ---
+@@||sellercentral.amazon.com^$important
+@@||sellercentral.amazon.co.jp^$important
+@@||sellercentral.amazon.co.uk^$important
+@@||sellercentral-europe.amazon.com^$important
+@@||s3.amazonaws.com^$important
+@@||api.etsy.com^$important
+@@||openapi.etsy.com^$important
+@@||www.etsy.com^$important
+@@||api.shopify.com^$important
+@@||shopify.com^$important
+@@||www.shopify.com^$important
+@@||admin.shopify.com^$important
+@@||api.ebay.com^$important
+@@||api.walmart.com^$important
+@@||developer.api.ebay.com^$important
+
+! --- 企业协作与开发工具（登录、CI、CDN、包管理） ---
+@@||github.com^$important
+@@||api.github.com^$important
+@@||objects.githubusercontent.com^$important
+@@||raw.githubusercontent.com^$important
+@@||codeload.github.com^$important
+@@||gitlab.com^$important
+@@||api.slack.com^$important
+@@||slack.com^$important
+@@||discord.com^$important
+@@||discordapp.com^$important
+@@||atlassian.net^$important
+@@||registry.npmjs.org^$important
+@@||npmjs.com^$important
+@@||pypi.org^$important
+@@||files.pythonhosted.org^$important
+@@||repo.anaconda.com^$important
+@@||conda.anaconda.org^$important
+
+! --- AI 服务（Claude / ChatGPT / Gemini 及其 API） ---
+@@||anthropic.com^$important
+@@||api.anthropic.com^$important
+@@||claude.ai^$important
+@@||openai.com^$important
+@@||api.openai.com^$important
+@@||chatgpt.com^$important
+@@||chat.openai.com^$important
+@@||gemini.google.com^$important
+@@||generativelanguage.googleapis.com^$important
+@@||perplexity.ai^$important
+
+! --- 流媒体播放与鉴权（部分平台把 CDN / 鉴权域名与广告域名混在同一主域下） ---
+@@||netflix.com^$important
+@@||www.netflix.com^$important
+@@||api.netflix.com^$important
+@@||disneyplus.com^$important
+@@||www.disneyplus.com^$important
+@@||spotify.com^$important
+@@||api.spotify.com^$important
+@@||youtube.com^$important
+@@||www.youtube.com^$important
+@@||googlevideo.com^$important
+@@||twitch.tv^$important
+
+! ###########################################################
+! ## 第二层: 纯追踪 / 垃圾广告拦截 (FORCE-BLOCK)
+! ## ||x^$important —— 强制拦截, 可压过社区列表的 @@ 放行
+! ###########################################################
+
+! --- Meta 追踪端点（pixel / star / edge 家族，广告与登录追踪） ---
+||pixel.facebook.com^$important
+||pixel.facebook.net^$important
+||edge-f.facebook.com^$important
+||star.c10r.facebook.com^$important
+||star-mini.c10r.facebook.com^$important
+||star.fallback.c10r.facebook.com^$important
+||star-mini.fallback.c10r.facebook.com^$important
+||star.fallback.c10r.instagram.com^$important
+||star-mini-nohsts.c10r.facebook.com^$important
+||star-nohsts.c10r.facebook.com^$important
+||analytics.facebook.com^$important
+||ads.facebook.com^$important
+||an.facebook.com^$important
+||tr.facebook.com^$important
+
+! --- 字节系日志上报 / 归因（log / rtlog / mon 全系列） ---
+||log.amemv.com^$important
+||log0-misc-hl.amemv.com^$important
+||log0-misc-lf.amemv.com^$important
+||log0-misc-lq.amemv.com^$important
+||log3-misc-hl.amemv.com^$important
+||log3-misc-lf.amemv.com^$important
+||log3-misc-lq.amemv.com^$important
+||log5-misc-hl.amemv.com^$important
+||log5-misc-lf.amemv.com^$important
+||log5-misc-lq.amemv.com^$important
+||logbk.amemv.com^$important
+||rtlog3-applog-hl.amemv.com^$important
+||rtlog3-applog-lf.amemv.com^$important
+||rtlog3-applog-lq.amemv.com^$important
+||log-tiktok.byteoversea.net^$important
+||log-tiktok.byteoversea.net.bpgslb.com^$important
+||mcs-tiktok.byteoversea.net^$important
+||log9-normal-c-useast1a.tiktokv.com.ecdnx.com^$important
+||tiktok.tray.com.br^$important
+||tnc3-aliec2.bytedance.com^$important
+||tnc3-alisc1.bytedance.com^$important
+||tnc3-bjlgy.bytedance.com^$important
+
+! --- 字节系广告与归因（ads / analytics / pangle） ---
+||ads.us.tiktok.com^$important
+||ads.in.tiktok.com^$important
+||ads.ttp2.us.tiktok.com^$important
+||ads-ttp2.us.tiktok.com^$important
+||ads-ttp2.tiktokw.eu.edgesuite.net^$important
+||ads-sg.business-tiktok.com.edgesuite.net^$important
+||analytics-ipv6.tiktokw.us^$important
+||analytics-sg.tiktok.com^$important
+||analytics.us.tiktok.com^$important
+||ad-instantpage-sg.tiktokv.com.edgekey.net^$important
+||mon-boot.tiktokv.com.edgekey.net^$important
+||analytics.tiktok.com.edgekey.net^$important
+||analytics-attribution-va.tiktok.com.edgekey.net^$important
+||analytics-exp-i18n.tiktok.com.edgekey.net^$important
+||analytics-exp-sg.tiktok.com.edgekey.net^$important
+||analytics-i18n.tiktok.com.edgekey.net^$important
+||analytics-sg.tiktok.com.edgekey.net^$important
+||analytics.us.tiktok.com.bytedance.akadns.net^$important
+||analytics.us.tiktok.com.bytewlb.akadns.net^$important
+||analytics.tiktok.com.bytewlb.akadns.net^$important
+||analytics.us.tiktok.com-row.bytewlb.akadns.net^$important
+||analytics.us.tiktok.com.edgesuite.net^$important
+||load.api.viradatiktokshop.com^$important
+||ad.tiktokv.us^$important
+||pangle.io^$important
+||pangle-b.io^$important
+||pangle.io.edgekey.net^$important
+||analytics.pangle-ads.com^$important
+||tiktokpangle.us^$important
+
+! --- 分析归因 SDK（第三方埋点，全量拦截） ---
+||appsflyer.com^$important
+||app.adjust.com^$important
+||adjust.com^$important
+||api.amplitude.com^$important
+||api2.amplitude.com^$important
+||api.mixpanel.com^$important
+||api.segment.io^$important
+||cdn.segment.com^$important
+||api.heap.io^$important
+||heapanalytics.com^$important
+||matomo.cloud^$important
+||api.branch.io^$important
+||static.cognitivetracking.com^$important
+||cdn.cognitivetracking.com^$important
+||sb.scorecardresearch.com^$important
+
+! --- 谷歌系分析与广告（Google Analytics / Firebase / DoubleClick） ---
+||analytics.google.com^$important
+||ssl.google-analytics.com^$important
+||www.google-analytics.com^$important
+||app-measurement.com^$important
+||firebase-settings.crashlytics.com^$important
+||stats.g.doubleclick.net^$important
+||ad.doubleclick.cn^$important
+
+! --- 微软系遥测（Windows 活动 / Application Insights） ---
+||mobile.events.data.microsoft.com^$important
+||self.events.data.microsoft.com^$important
+||v10.events.data.microsoft.com^$important
+||v20.events.data.microsoft.com^$important
+||events.data.microsoft.com^$important
+||activity.windows.com^$important
+||assets.activity.windows.com^$important
+||edge.activity.windows.com^$important
+||settings.data.microsoft.com^$important
+||ppe.activity.windows.com^$important
+||applicationinsights.io^$important
+||loganalytics.io^$important
+||js.monitor.azure.com^$important
+
+! --- 其他广告与错误上报 ---
+||bat.bing.com^$important
+||sc-static.net^$important
+||sentry.io^$important

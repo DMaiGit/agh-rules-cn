@@ -1,0 +1,85 @@
+name: Validate Rules
+
+on:
+  push:
+    paths:
+      - 'rules.txt'
+      - 'gen-own-ruleset.py'
+      - '.github/workflows/validate.yml'
+  pull_request:
+    paths:
+      - 'rules.txt'
+      - 'gen-own-ruleset.py'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check rules.txt is in sync with generator
+        run: |
+          python3 gen-own-ruleset.py --check
+        continue-on-error: false
+
+      - name: Validate syntax and duplicates
+        run: |
+          python3 - <<'PY'
+          import re, sys
+
+          RULES = [
+              r'^@@\|\|[^*]+\^\$important$',   # 放行层: 必须是 @@||x^$important
+              r'^\|\|[^*]+\^\$important$',       # 拦截层: 必须是 ||x^$important
+          ]
+
+          lines = [l.rstrip('\n') for l in open('rules.txt', encoding='utf-8')]
+          rules = [l for l in lines if l and not l.startswith('!')]
+
+          bad = [r for r in rules if not any(re.match(p, r) for p in RULES)]
+          if bad:
+              print('语法异常规则 (必须带 $important):')
+              for r in bad: print('  ', r)
+              sys.exit(1)
+
+          dup = sorted({r for r in rules if rules.count(r) > 1})
+          if dup:
+              print('重复规则:')
+              for d in dup: print('  ', d)
+              sys.exit(1)
+
+          allow = [r for r in rules if r.startswith('@@')]
+          block = [r for r in rules if not r.startswith('@@')]
+          print(f'规则校验通过: 放行 {len(allow)} 条 / 拦截 {len(block)} 条 / 合计 {len(rules)} 条')
+          PY
+
+      - name: Verify no domain is both allowed and blocked
+        run: |
+          python3 - <<'PY'
+          import re, sys
+
+          rules = [l.strip() for l in open('rules.txt', encoding='utf-8')
+                   if l.strip() and not l.startswith('!')]
+
+          def dom(r):
+              m = re.match(r'@@?\|\|([^*]+)\^', r)
+              return m.group(1).lower() if m else None
+
+          allow = {d for d in map(dom, rules) if d and dom(next(r for r in rules if dom(r) == d and r.startswith('@@')))}
+          block = set()
+          for r in rules:
+              if not r.startswith('@@'):
+                  d = dom(r)
+                  if d: block.add(d)
+
+          # 同一个域名同时出现在放行与拦截里 -> 冲突
+          conflict = sorted(set(
+              r for r in rules
+              if dom(r) and not r.startswith('@@') and
+              any(a == dom(r) for a in allow)
+          ))
+          if conflict:
+              print('同一域名同时被放行与拦截:')
+              for c in conflict: print('  ', c)
+              sys.exit(1)
+          print('无放行/拦截冲突')
+          PY
