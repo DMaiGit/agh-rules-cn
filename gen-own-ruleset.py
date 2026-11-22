@@ -27,9 +27,13 @@
   3) 精确粒度 —— 放行精确到主机名, 不做整域放行; 拦截用 || 覆盖子域树。
   4) 可审计   —— 每条规则带分类注释, 生成脚本即真源, 可复现。
 """
-import os, re, datetime
+import os, re, sys, datetime
 
-OUT_DIR = '/Volumes/public/旁路由/openclash_ai/own-ruleset'
+# 产物目录：默认脚本所在目录（仓库根 / CI 环境）；本机若存在 own-ruleset 子目录则用它。
+# 也可用环境变量 AGH_RULES_OUT 显式指定。
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_SUB = os.path.join(_HERE, 'own-ruleset')
+OUT_DIR = os.environ.get('AGH_RULES_OUT') or (_SUB if os.path.isdir(_SUB) else _HERE)
 os.makedirs(OUT_DIR, exist_ok=True)
 
 GENERATED = datetime.date.today().isoformat()
@@ -403,15 +407,21 @@ args = ap.parse_args()
 
 if args.check:
     # CI 模式: 与仓库中的产物比对
+    def _norm(s):
+        # 忽略「生成日期」行：否则跨天后校验必然失败（内容相同、日期不同）
+        return '\n'.join(l for l in s.splitlines() if not l.startswith('! 生成日期:'))
+
     ok = True
     for fn, content in [(os.path.basename(rules_path), text),
-                         (os.path.basename(ur_path), ur_text)]:
-        repo = os.path.join(os.path.dirname(os.path.abspath(__file__)), fn)
+                        (os.path.basename(ur_path), ur_text)]:
+        repo = os.path.join(OUT_DIR, fn)
         if not os.path.exists(repo):
             print(f'✗ 未找到 {fn}'); ok = False; continue
-        if open(repo, encoding='utf-8').read() != content:
+        if _norm(open(repo, encoding='utf-8').read()) != _norm(content):
             print(f'✗ {fn} 与生成器输出不一致, 请运行 python3 gen-own-ruleset.py 后提交')
             ok = False
+    if ok:
+        print('✓ 产物与生成器一致')
     sys.exit(0 if ok else 1)
 
 open(rules_path, 'w', encoding='utf-8').write(text)

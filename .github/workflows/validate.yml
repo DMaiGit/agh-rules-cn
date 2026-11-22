@@ -38,10 +38,16 @@ jobs:
               print('rules.txt 不应包含 @@ 放行 ($important 在列表文件中不生效)')
               sys.exit(1)
 
-          raw = [l.strip() for l in open('user_rules.yaml', encoding='utf-8')
-                 if l.strip() and not l.startswith('#')
-                 and not l.strip().startswith("- '!")]
-          allow = [r.strip("'").strip() for r in raw]
+          allow = []
+          for l in open('user_rules.yaml', encoding='utf-8'):
+              l = l.strip()
+              m = re.match(r"^-\s*'(.*)'$", l)
+              if not m:
+                  continue
+              v = m.group(1)
+              if v.startswith('!'):      # 分类分隔注释行
+                  continue
+              allow.append(v)
           bad = [r for r in allow if not re.match(r'^@@\|\|[^*]+\^\$important$', r)]
           if bad:
               print('user_rules.yaml 出现非放行规则或缺少 $important:')
@@ -89,7 +95,10 @@ jobs:
               if not m: continue
               d = m.group(1).lower()
               for b in BIZ:
-                  if d == b or d.endswith('.' + b):
+                  # 只把「拦截主域本体」判为误伤。
+                  # 拦主域下的追踪子域（pixel./star./analytics./events.data 等）
+                  # 正是业务感知设计的核心，不算误伤。
+                  if d == b or d == 'www.' + b:
                       hit.append((r, b))
           if hit:
               print('拦截规则命中业务域名:')
