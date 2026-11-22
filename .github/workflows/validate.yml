@@ -4,11 +4,13 @@ on:
   push:
     paths:
       - 'rules.txt'
+      - 'user_rules.yaml'
       - 'gen-own-ruleset.py'
       - '.github/workflows/validate.yml'
   pull_request:
     paths:
       - 'rules.txt'
+      - 'user_rules.yaml'
       - 'gen-own-ruleset.py'
 
 jobs:
@@ -17,69 +19,81 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check rules.txt is in sync with generator
-        run: |
-          python3 gen-own-ruleset.py --check
-        continue-on-error: false
+      - name: Check 产物与生成器一致
+        run: python3 gen-own-ruleset.py --check
 
-      - name: Validate syntax and duplicates
+      - name: 校验语法与分层正确性
         run: |
           python3 - <<'PY'
           import re, sys
 
-          RULES = [
-              r'^@@\|\|[^*]+\^\$important$',   # 放行层: 必须是 @@||x^$important
-              r'^\|\|[^*]+\^\$important$',       # 拦截层: 必须是 ||x^$important
-          ]
-
-          lines = [l.rstrip('\n') for l in open('rules.txt', encoding='utf-8')]
-          rules = [l for l in lines if l and not l.startswith('!')]
-
-          bad = [r for r in rules if not any(re.match(p, r) for p in RULES)]
+          block = [l.strip() for l in open('rules.txt', encoding='utf-8')
+                   if l.strip() and not l.startswith('!')]
+          bad = [r for r in block if not re.match(r'^\|\|[^*]+\^\$important$', r)]
           if bad:
-              print('语法异常规则 (必须带 $important):')
+              print('rules.txt 出现非拦截规则或缺少 $important:')
+              for r in bad: print('  ', r)
+              sys.exit(1)
+          if any(r.startswith('@@') for r in block):
+              print('rules.txt 不应包含 @@ 放行 ($important 在列表文件中不生效)')
+              sys.exit(1)
+
+          raw = [l.strip() for l in open('user_rules.yaml', encoding='utf-8')
+                 if l.strip() and not l.startswith('#')
+                 and not l.strip().startswith("- '!")]
+          allow = [r.strip("'").strip() for r in raw]
+          bad = [r for r in allow if not re.match(r'^@@\|\|[^*]+\^\$important$', r)]
+          if bad:
+              print('user_rules.yaml 出现非放行规则或缺少 $important:')
               for r in bad: print('  ', r)
               sys.exit(1)
 
-          dup = sorted({r for r in rules if rules.count(r) > 1})
+          dup = sorted({r for r in block + allow if (block + allow).count(r) > 1})
           if dup:
               print('重复规则:')
               for d in dup: print('  ', d)
               sys.exit(1)
 
-          allow = [r for r in rules if r.startswith('@@')]
-          block = [r for r in rules if not r.startswith('@@')]
-          print(f'规则校验通过: 放行 {len(allow)} 条 / 拦截 {len(block)} 条 / 合计 {len(rules)} 条')
-          PY
-
-      - name: Verify no domain is both allowed and blocked
-        run: |
-          python3 - <<'PY'
-          import re, sys
-
-          rules = [l.strip() for l in open('rules.txt', encoding='utf-8')
-                   if l.strip() and not l.startswith('!')]
-
           def dom(r):
-              m = re.match(r'@@?\|\|([^*]+)\^', r)
-              return m.group(1).lower() if m else None
-
-          allow = {d for d in map(dom, rules) if d and dom(next(r for r in rules if dom(r) == d and r.startswith('@@')))}
-          block = set()
-          for r in rules:
-              if not r.startswith('@@'):
-                  d = dom(r)
-                  if d: block.add(d)
-
-          # 同一个域名同时出现在放行与拦截里 -> 冲突
-          conflict = sorted(set(
-              r for r in rules
-              if dom(r) and not r.startswith('@@') and
-              any(a == dom(r) for a in allow)
-          ))
+              m = re.match(r'^(@@)?\|\|([^*]+)\^', r)
+              return m.group(2).lower() if m else None
+          bd = {dom(r) for r in block}
+          ad = {dom(r) for r in allow}
+          conflict = sorted(bd & ad)
           if conflict:
               print('同一域名同时被放行与拦截:')
               for c in conflict: print('  ', c)
               sys.exit(1)
-          print('无放行/拦截冲突')
+
+          print(f'校验通过: 拦截 {len(block)} 条 / 放行 {len(allow)} 条 / 合计 {len(block)+len(allow)} 条')
+          PY
+
+      - name: 业务域名零误伤检查
+        run: |
+          python3 - <<'PY'
+          import re, sys
+          BIZ = ['amazon.com','ebay.com','etsy.com','walmart.com','shopify.com','shein.com',
+                 'temu.com','paypal.com','stripe.com','payoneer.com','wise.com','visa.com',
+                 'mastercard.com','netflix.com','disneyplus.com','spotify.com','youtube.com',
+                 'twitch.tv','openai.com','anthropic.com','claude.ai','facebook.com',
+                 'instagram.com','twitter.com','tiktok.com','telegram.org','discord.com',
+                 'reddit.com','linkedin.com','github.com','gitlab.com','atlassian.com',
+                 'slack.com','office.com','microsoft.com','cloudflare.com','npmjs.com',
+                 'pypi.org','pythonhosted.org','anaconda.com','bilibili.com','douyin.com',
+                 'zhihu.com','taobao.com','alipay.com','meituan.com','xiaohongshu.com']
+          block = [l.strip() for l in open('rules.txt', encoding='utf-8')
+                   if l.strip() and not l.startswith('!')]
+          hit = []
+          for r in block:
+              m = re.match(r'^\|\|([^*]+)\^', r)
+              if not m: continue
+              d = m.group(1).lower()
+              for b in BIZ:
+                  if d == b or d.endswith('.' + b):
+                      hit.append((r, b))
+          if hit:
+              print('拦截规则命中业务域名:')
+              for r, b in hit: print('  ', r, '->', b)
+              sys.exit(1)
+          print(f'业务域名零误伤检查通过 ({len(BIZ)} 个主域)')
           PY
