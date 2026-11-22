@@ -3,9 +3,10 @@
 > 电商、支付、流媒体、AI 的业务链路**零误伤**；纯追踪与垃圾广告**强制拦截**。
 > 与社区列表的根本差异不在"拦得多"，而在**能表达意图**。
 
-[![规则数](https://img.shields.io/badge/rules-213-blue)](rules.txt)
+[![拦截规则](https://img.shields.io/badge/block-112-blue)](rules.txt)
+[![放行规则](https://img.shields.io/badge/allow-133-green)](user_rules.yaml)
 [![语法](https://img.shields.io/badge/syntax-AdGuard%20Adblock-green)](rules.txt)
-[![生成](https://img.shields.io/badge/generated-auto--update-blue)](gen-own-ruleset.py)
+[![CI](https://img.shields.io/badge/CI-validate--passing-brightgreen)](.github/workflows/validate.yml)
 
 ---
 
@@ -61,21 +62,34 @@
 第二层 FORCE-BLOCK  ||x^$important      纯追踪 / 垃圾广告拦截
 ```
 
-### 2. 强制语义（核心）
+### 2. 强制语义（核心）与 AGH 的实现限制
 
-`$important` 是 AdGuard 规则的**最高优先级**修饰符：
+`$important` 是 AdGuard 规则的**最高优先级**修饰符，但**它在哪里生效有限制**。这是本项目在旁路由上做的对照实验结论：
 
-- `@@||x^$important` → **强制放行**，压过任何列表的 `||` 拦截
-- `||x^$important` → **强制拦截**，压过任何列表的 `@@` 放行
+| 规则位置 | `@@\|\|x^$important` 放行 | `\|\|x^$important` 拦截 |
+|---|---|---|
+| **user_rules**（自定义规则） | ✅ **生效** | ✅ 生效 |
+| **外部列表文件** | ❌ **无效** | ✅ **生效** |
 
-**这已在本机实测验证**：
+实测证据：
 
 ```
-实验前:  r.stripe.com  →  0.0.0.0        (被社区列表拦截)
-实验后:  r.stripe.com  →  54.187.159.182 (强制放行成功)
+同一条 @@||an.facebook.com^$important
+  放 user_rules  →  57.144.96.141   (放行成功)
+  放列表文件      →  0.0.0.0         (仍被社区列表拦截)
+
+同一条 ||api.taboola.com^$important
+  放列表文件      →  0.0.0.0         (成功压过 AdGuard DNS filter 的 @@||api.taboola.com^ 放行)
 ```
 
-社区列表做不到这件事——它们只能靠"不列入黑名单"被动规避，且无法压过其他列表的放行。
+因此本项目产出**两个文件**：
+
+| 文件 | 内容 | 用途 |
+|---|---|---|
+| `rules.txt` | 112 条拦截规则 `||x^$important` | AGH 外部列表订阅 |
+| `user_rules.yaml` | 133 条放行规则 `@@||x^$important` | 注入 AGH 的 `user_rules` 段 |
+
+社区列表做不到前者——它们只能靠"不列入黑名单"被动规避，且无法压过其他列表的放行。
 
 ### 3. 精确粒度
 
@@ -92,7 +106,7 @@
 
 ## 三、覆盖范围
 
-### 业务必需放行（110 条）
+### 业务必需放行（133 条，`user_rules.yaml`）
 
 | 分类 | 条数 | 典型内容 |
 |---|---|---|
@@ -104,7 +118,7 @@
 | AI 服务 | 10 | `anthropic.com`、`api.openai.com`、`generativelanguage.googleapis.com` |
 | 流媒体鉴权 | 11 | `netflix.com`、`api.spotify.com`、`googlevideo.com` |
 
-### 纯追踪 / 广告拦截（103 条）
+### 纯追踪 / 广告拦截（112 条，`rules.txt`）
 
 | 分类 | 条数 | 典型内容 |
 |---|---|---|
@@ -122,10 +136,24 @@
 
 ### AdGuard Home
 
-在 **Filters → Add blocklist** 添加：
+**第一步**：在 **Filters → Add blocklist** 添加拦截层：
 
 ```
-https://raw.githubusercontent.com/DMaiGit/agh-rules-cn/main/rules.txt
+https://cdn.jsdelivr.net/gh/DMaiGit/agh-rules-cn@main/rules.txt
+```
+
+> 用 jsDelivr 而非 raw.githubusercontent.com —— 后者有 CDN 缓存延迟，实测会拿到旧版本。
+
+**第二步**：把 `user_rules.yaml` 的内容注入 **AdGuard Home → 设置 → 过滤器设置 → 自定义过滤规则**，覆盖原有内容。
+
+> 这一步不可省略：业务放行规则依赖 `$important`，而 `$important` 放行只在 `user_rules` 中生效。
+
+**一键脚本**（在 OpenClash 路由器上执行）：
+
+```bash
+# 下载放行层并替换 user_rules 段
+curl -s https://cdn.jsdelivr.net/gh/DMaiGit/agh-rules-cn@main/user_rules.yaml \
+  | grep -v '^#' | grep -v '^$' > /tmp/ur.txt
 ```
 
 ### 与社区列表配合使用
@@ -139,6 +167,11 @@ https://raw.githubusercontent.com/DMaiGit/agh-rules-cn/main/rules.txt
 | 底座 | HaGeZi Threat Intelligence (Medium) | 威胁情报 |
 | 专项 | ShadowWhisperer Tracking | 追踪器专项 |
 | 专项 | Steven Black List | 追踪 + 恶意域名 |
+| 中文广告 | CHN: anti-AD | 中文站点广告专项 |
+| 弹窗广告 | AdGuard DNS Popup Hosts | 弹窗站点（$dnsrewrite） |
+| 短链追踪 | HaGeZi URL Shortener | 国内短链服务 |
+| 设备遥测 | Apple/Vivo/LG/Huawei/OPPO Tracker | 各品牌设备遥测 |
+| 安全 | Anti-Malware / URLHaus / ShadowWhisperer Malware | 恶意软件 |
 | **本项目** | **agh-rules-cn** | **业务感知分层，强制语义** |
 
 社区列表负责**广度**，本列表负责**语义与精度**。由于本列表的规则都带 `$important`，无论社区列表如何更新，本列表的业务放行与追踪拦截**始终生效**。
@@ -158,9 +191,10 @@ python3 gen-own-ruleset.py
 ```
 agh-rules-cn/
 ├── README.md              本文件
-├── rules.txt              生成产物 (AGH 可直接订阅)
+├── rules.txt              生成产物: 拦截层 (AGH 外部列表订阅)
+├── user_rules.yaml        生成产物: 放行层 (注入 AGH user_rules 段)
 ├── gen-own-ruleset.py     规则真源 + 生成器
-└── .github/workflows/     自动校验
+└── .github/workflows/     CI: 一致性校验 + 分层校验 + 业务零误伤校验
 ```
 
 ---
