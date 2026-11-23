@@ -46,10 +46,17 @@ GENERATED = datetime.date.today().isoformat()
 # 其余 FORCE_ALLOW 条目不注入 AGH，只写入 watchlist.txt 作为观察名单：
 # 上游列表更新导致误伤时，把域名加进 ACTIVE_DOMAINS 并重新生成即可。
 ACTIVE_DOMAINS = {
+    # 作为「查询域名」被拦
     'adservice.google.com', 'googleadservices.com', 'googlesyndication.com',
     'googleads.g.doubleclick.net', 'googletagmanager.com', 'ads-twitter.com',
     'amazon-adsystem.com', 'gdt.qq.com', 'e.qq.com', 'ads.tiktok.com',
-    'analytics.tiktok.com', 'sc-static.net', 'an.facebook.com',
+    'analytics.tiktok.com', 'sc-static.net', 'an.facebook.com', 'ads.google.com',
+    # 作为「CNAME 目标 / 规则名」被拦：按查询域名审计会漏，必须按规则名补齐
+    'dns.iqiyi.com', 'dns.weixin.qq.com.cn', 'aedns.weixin.qq.com',
+    'metacubex.one', 'tliveapp.com', 'graph.instagram.com', 'tr.facebook.com',
+    'ad.toutiao.com', 'ad.weixin.qq.com', 'e.kuaishou.com',
+    'ads-api.tiktok.com', 'ads-sg.business-tiktok.com',
+    'ads-va.business-tiktok.com', 'business-api.tiktok.com',
 }
 
 # Clash 侧同源放行：域名 -> 目标策略组。由 oc-adapt.py 读取并生成

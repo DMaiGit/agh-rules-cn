@@ -3,25 +3,17 @@
 # 生成器: gen-own-ruleset.py (请勿手改)
 
 ! --- 投放 / 广告后台（业务必需，广告主无法登录投放平台等于无法投放） ---
-@@||ads.google.com^
 @@||shie.com.cn^
-@@||ads-sg.business-tiktok.com^
-@@||ads-va.business-tiktok.com^
-@@||ads-api.tiktok.com^
 @@||ads-tiktok.com^
 @@||ads.union.tiktokv.com^
 @@||business.tiktok.com^
-@@||business-api.tiktok.com^
-@@||ad.toutiao.com^
 @@||ads.toutiao.com^
 @@||open.douyin.com^
 @@||qianchuan.jinritemai.com^
 @@||business.oceanengine.com^
 @@||ad.xiaohongshu.com^
-@@||ad.weixin.qq.com^
 @@||e.weibo.com^
 @@||ads.kuaishou.com^
-@@||e.kuaishou.com^
 @@||cm.bilibili.com^
 
 ! --- TikTok / 抖音 主站 API 与内容分发（精确放行，不用整域，避免连带放过 ads 子域） ---
@@ -118,18 +110,11 @@
 @@||cloudflareperf.com^
 
 ! --- 社区列表整域误伤修正（基础设施 / 鉴权 / 支付风控域名，并非追踪；2026-11-24 查询日志实证） ---
-@@||dns.iqiyi.com^
-@@||dns.weixin.qq.com.cn^
-@@||aedns.weixin.qq.com^
 @@||cdn-go.cn^
 @@||cdn.staticfile.org^
-@@||tliveapp.com^
-@@||metacubex.one^
-@@||graph.instagram.com^
 @@||gateway.instagram.com^
 
 ! --- 社媒登录回跳端点（社区列表会拦掉，导致无法登录） ---
-@@||tr.facebook.com^
 @@||m.facebook.com^
 @@||touch.facebook.com^
 @@||b-api.facebook.com^

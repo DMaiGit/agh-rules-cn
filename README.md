@@ -4,7 +4,7 @@
 > 与社区列表的根本差异不在"拦得多"，而在**能表达意图**。
 
 [![拦截规则](https://img.shields.io/badge/block-113-blue)](rules.txt)
-[![放行规则](https://img.shields.io/badge/allow-13-green)](user_rules.yaml)
+[![放行规则](https://img.shields.io/badge/allow-28-green)](user_rules.yaml)
 [![语法](https://img.shields.io/badge/syntax-AdGuard%20Adblock-green)](rules.txt)
 [![CI](https://img.shields.io/badge/CI-validate--passing-brightgreen)](.github/workflows/validate.yml)
 
@@ -87,8 +87,8 @@
 | 文件 | 内容 | 用途 |
 |---|---|---|
 | `rules.txt` | 113 条拦截规则 `||x^$important` | AGH 外部列表订阅 |
-| `user_rules.yaml` | 13 条**当前真正需要**的放行规则 `@@||x^$important` | 注入 AGH 的 `user_rules` 段 |
-| `watchlist.txt` | 142 条观察名单 | 上游列表更新导致误伤时，把域名加入生成器 `ACTIVE_DOMAINS` 再启用 |
+| `user_rules.yaml` | 28 条**当前真正需要**的放行规则 `@@||x^$important` | 注入 AGH 的 `user_rules` 段 |
+| `watchlist.txt` | 127 条观察名单 | 上游列表更新导致误伤时，把域名加入生成器 `ACTIVE_DOMAINS` 再启用 |
 | `business_allow.yaml` | 3 条 Clash 侧同源放行（域名→策略组） | `oc-adapt.py` 读取，插在 `RULE-SET,reject,REJECT` 前 |
 
 社区列表做不到前者——它们只能靠"不列入黑名单"被动规避，且无法压过其他列表的放行。
@@ -113,10 +113,11 @@
 
 | 分类 | 条数 | 典型内容 |
 |---|---|---|
-| 投放 / 广告后台 | 10 | `adservice.google.com`、`googleadservices.com`、`googlesyndication.com`、`googleads.g.doubleclick.net`、`googletagmanager.com`、`ads-twitter.com`、`amazon-adsystem.com`、`gdt.qq.com`、`e.qq.com`、`ads.tiktok.com` |
-| TikTok / 抖音主站 | 1 | `analytics.tiktok.com` |
+| 投放 / 广告后台 | 18 | `adservice.google.com`、`ads.google.com`、`googleadservices.com`、`googletagmanager.com`、`gdt.qq.com`、`e.qq.com`、`ad.toutiao.com`、`ad.weixin.qq.com`、`e.kuaishou.com` |
+| TikTok / 抖音主站 | 6 | `analytics.tiktok.com`、`ads.tiktok.com`、`ads-api.tiktok.com`、`business-api.tiktok.com`、`ads-sg/va.business-tiktok.com` |
+| CNAME 链 / 基础设施 | 4 | `dns.iqiyi.com`、`dns.weixin.qq.com.cn`、`aedns.weixin.qq.com`、`metacubex.one`、`tliveapp.com` |
 | 支付 / 风控 | 1 | `sc-static.net` |
-| 社媒登录回跳 | 1 | `an.facebook.com` |
+| 社媒登录回跳 | 2 | `an.facebook.com`、`tr.facebook.com`、`graph.instagram.com` |
 
 > 完整业务域名定义仍保留在生成器的 `FORCE_ALLOW`（155 条），未删除；只是不再全部注入 AGH。
 
