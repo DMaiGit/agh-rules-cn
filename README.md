@@ -4,7 +4,7 @@
 > 与社区列表的根本差异不在"拦得多"，而在**能表达意图**。
 
 [![拦截规则](https://img.shields.io/badge/block-113-blue)](rules.txt)
-[![放行规则](https://img.shields.io/badge/allow-155-green)](user_rules.yaml)
+[![放行规则](https://img.shields.io/badge/allow-13-green)](user_rules.yaml)
 [![语法](https://img.shields.io/badge/syntax-AdGuard%20Adblock-green)](rules.txt)
 [![CI](https://img.shields.io/badge/CI-validate--passing-brightgreen)](.github/workflows/validate.yml)
 
@@ -82,12 +82,14 @@
   放列表文件      →  0.0.0.0         (成功压过 AdGuard DNS filter 的 @@||api.taboola.com^ 放行)
 ```
 
-因此本项目产出**两个文件**：
+因此本项目产出**四个文件**（两侧规则集共用同一真源）：
 
 | 文件 | 内容 | 用途 |
 |---|---|---|
 | `rules.txt` | 113 条拦截规则 `||x^$important` | AGH 外部列表订阅 |
-| `user_rules.yaml` | 155 条放行规则 `@@||x^$important` | 注入 AGH 的 `user_rules` 段 |
+| `user_rules.yaml` | 13 条**当前真正需要**的放行规则 `@@||x^$important` | 注入 AGH 的 `user_rules` 段 |
+| `watchlist.txt` | 142 条观察名单 | 上游列表更新导致误伤时，把域名加入生成器 `ACTIVE_DOMAINS` 再启用 |
+| `business_allow.yaml` | 3 条 Clash 侧同源放行（域名→策略组） | `oc-adapt.py` 读取，插在 `RULE-SET,reject,REJECT` 前 |
 
 社区列表做不到前者——它们只能靠"不列入黑名单"被动规避，且无法压过其他列表的放行。
 
@@ -99,27 +101,24 @@
 ### 4. 可审计
 
 - 每条规则带分类注释
-- `gen-own-ruleset.py` 是唯一真源，`rules.txt` 由它生成，可复现
+- `gen-own-ruleset.py` 是唯一真源，四个产物都由它生成，可复现
+- 2026-11-24 源头审计：155 条放行中只有 13 条被当前 27 个启用列表或 Clash reject 真正需要，其余进观察名单，不再无差别覆盖
 - 分类结构对应到具体业务场景，不是按域名来源分类
 
 ---
 
 ## 三、覆盖范围
 
-### 业务必需放行（155 条，`user_rules.yaml`）
+### 业务必需放行（13 条，`user_rules.yaml`）
 
 | 分类 | 条数 | 典型内容 |
 |---|---|---|
-| 投放 / 广告后台 | 17 | `ads.google.com`、`ads.tiktok.com`、`business.tiktok.com`、`amazon-adsystem.com` |
-| TikTok / 抖音主站 API | 21 | `api.tiktokv.com`、`api16-normal-*.tiktokv.com`、`mcs.tiktokv.com` |
-| 支付链路 | 21 | `r.stripe.com`、`js.stripe.com`、`api.paypal.com`、`api.wise.com` |
-| 电商后台 / 卖家工具 | 14 | `sellercentral.amazon.com`、`api.etsy.com`、`api.shopify.com` |
-| 企业协作 / 开发工具 | 14 | `github.com`、`registry.npmjs.org`、`files.pythonhosted.org` |
-| AI 服务 | 10 | `anthropic.com`、`api.openai.com`、`generativelanguage.googleapis.com` |
-| 流媒体鉴权 | 11 | `netflix.com`、`api.spotify.com`、`googlevideo.com` |
-| IP 查询 / 网络诊断 | 11 | `ip.sb`、`ipinfo.io`、`ip.cn`、`ip138.com`、`ifconfig.me` |
-| 社媒登录回跳端点 | 10 | `graph.facebook.com`、`connect.facebook.net` |
-| 社区列表整域误伤修正 | 10 | `dns.iqiyi.com`、`dns.weixin.qq.com.cn`、`cdn-go.cn`、`sc-static.net`、`metacubex.one` |
+| 投放 / 广告后台 | 10 | `adservice.google.com`、`googleadservices.com`、`googlesyndication.com`、`googleads.g.doubleclick.net`、`googletagmanager.com`、`ads-twitter.com`、`amazon-adsystem.com`、`gdt.qq.com`、`e.qq.com`、`ads.tiktok.com` |
+| TikTok / 抖音主站 | 1 | `analytics.tiktok.com` |
+| 支付 / 风控 | 1 | `sc-static.net` |
+| 社媒登录回跳 | 1 | `an.facebook.com` |
+
+> 完整业务域名定义仍保留在生成器的 `FORCE_ALLOW`（155 条），未删除；只是不再全部注入 AGH。
 
 ### 纯追踪 / 广告拦截（113 条，`rules.txt`）
 
@@ -195,7 +194,9 @@ python3 gen-own-ruleset.py
 agh-rules-cn/
 ├── README.md              本文件
 ├── rules.txt              生成产物: 拦截层 (AGH 外部列表订阅)
-├── user_rules.yaml        生成产物: 放行层 (注入 AGH user_rules 段)
+├── user_rules.yaml        生成产物: 放行层 (13 条, 注入 AGH user_rules 段)
+├── watchlist.txt          生成产物: 观察名单 (142 条, 不注入)
+├── business_allow.yaml    生成产物: OpenClash 侧同源放行 (oc-adapt.py 读取)
 ├── gen-own-ruleset.py     规则真源 + 生成器
 └── .github/workflows/     CI: 一致性校验 + 分层校验 + 业务零误伤校验
 ```

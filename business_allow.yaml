@@ -1,0 +1,7 @@
+# 由 gen-own-ruleset.py 生成，请勿手改
+# oc-adapt.py 读取本文件，在 RULE-SET,reject,REJECT 之前插入 DOMAIN-SUFFIX 规则
+version: 1
+rules:
+  - 'DOMAIN-SUFFIX,sc-static.net,💳 Stripe'
+  - 'DOMAIN-SUFFIX,googletagmanager.com,🚀 PROXY'
+  - 'DOMAIN-SUFFIX,ttwstatic.com,📱 TikTok'

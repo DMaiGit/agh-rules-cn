@@ -38,6 +38,30 @@ os.makedirs(OUT_DIR, exist_ok=True)
 
 GENERATED = datetime.date.today().isoformat()
 
+# ------------------------------------------------------------------
+# 单一真源：两侧规则集共用同一份「业务必需域名」定义
+# ------------------------------------------------------------------
+# ACTIVE_DOMAINS：在当前 27 个启用 AGH 列表 + Clash reject 规则集下，
+#                 实测确实被拦截、必须放行的域名（2026-11-24 源头审计）。
+# 其余 FORCE_ALLOW 条目不注入 AGH，只写入 watchlist.txt 作为观察名单：
+# 上游列表更新导致误伤时，把域名加进 ACTIVE_DOMAINS 并重新生成即可。
+ACTIVE_DOMAINS = {
+    'adservice.google.com', 'googleadservices.com', 'googlesyndication.com',
+    'googleads.g.doubleclick.net', 'googletagmanager.com', 'ads-twitter.com',
+    'amazon-adsystem.com', 'gdt.qq.com', 'e.qq.com', 'ads.tiktok.com',
+    'analytics.tiktok.com', 'sc-static.net', 'an.facebook.com',
+}
+
+# Clash 侧同源放行：域名 -> 目标策略组。由 oc-adapt.py 读取并生成
+# DOMAIN-SUFFIX 规则（插在 RULE-SET,reject,REJECT 之前）。
+# ttwstatic.com 是路由归属修正（TikTok 静态资源原落 proxy_ls → 通用代理），
+# 另外两条是抵消 Loyalsoldier reject 的过宽拦截。
+CLASH_ALLOW = {
+    'sc-static.net': '💳 Stripe',
+    'googletagmanager.com': '🚀 PROXY',
+    'ttwstatic.com': '📱 TikTok',
+}
+
 # ==================================================================
 # 一、业务必需放行层 (FORCE-ALLOW)
 # ==================================================================
@@ -419,14 +443,40 @@ ur_lines = ['# 自有 AGH 规则集 — 业务必需放行层',
             '# 原因: 实测确认 $important 放行仅在 user_rules 中生效',
             '# 生成器: gen-own-ruleset.py (请勿手改)',
             '']
-n_allow = 0
+def _allowed_domain(rule):
+    m = re.match(r'^@@\|\|(.*?)\^', rule)
+    return m.group(1).lower() if m else ''
+
+n_allow = n_watch = 0
+watch_lines = ['# 观察名单：当前上游列表组合下无需注入 AGH 的业务域名',
+               '# 上游列表更新导致误伤时，把域名加入生成器 ACTIVE_DOMAINS 即可',
+               '# 生成器: gen-own-ruleset.py (请勿手改)', '']
 for cat, rules in FORCE_ALLOW.items():
-    ur_lines.append("  - '! --- " + cat + " ---'")
-    for r in rules:
-        ur_lines.append("  - '" + add_imp_allow(r).replace("'", "''") + "'")
-        n_allow += 1
+    active = [r for r in rules if _allowed_domain(r) in ACTIVE_DOMAINS]
+    watch = [r for r in rules if _allowed_domain(r) not in ACTIVE_DOMAINS]
+    n_allow += len(active); n_watch += len(watch)
+    if active:
+        ur_lines.append("  - '! --- " + cat + " ---'")
+        for r in active:
+            ur_lines.append("  - '" + add_imp_allow(r).replace("'", "''") + "'")
+    if watch:
+        watch_lines.append('! --- ' + cat + ' ---')
+        watch_lines.extend(watch)
+        watch_lines.append('')
 ur_text = '\n'.join(ur_lines) + '\n'
 ur_path = os.path.join(OUT_DIR, 'user_rules.yaml')
+watch_path = os.path.join(OUT_DIR, 'watchlist.txt')
+open(watch_path, 'w', encoding='utf-8').write('\n'.join(watch_lines).rstrip() + '\n')
+
+# ---- business_allow.yaml：OpenClash 侧同源放行（oc-adapt.py 读取）----
+ca_lines = ['# 由 gen-own-ruleset.py 生成，请勿手改',
+            '# oc-adapt.py 读取本文件，在 RULE-SET,reject,REJECT 之前插入 DOMAIN-SUFFIX 规则',
+            'version: 1', 'rules:']
+for dom, policy in CLASH_ALLOW.items():
+    ca_lines.append("  - 'DOMAIN-SUFFIX,%s,%s'" % (dom, policy))
+ca_text = '\n'.join(ca_lines) + '\n'
+ca_path = os.path.join(OUT_DIR, 'business_allow.yaml')
+open(ca_path, 'w', encoding='utf-8').write(ca_text)
 
 ap = argparse.ArgumentParser()
 ap.add_argument('--check', action='store_true',
@@ -442,7 +492,9 @@ if args.check:
 
     ok = True
     for fn, content in [(os.path.basename(rules_path), text),
-                        (os.path.basename(ur_path), ur_text)]:
+                        (os.path.basename(ur_path), ur_text),
+                        (os.path.basename(watch_path), open(watch_path, encoding='utf-8').read()),
+                        (os.path.basename(ca_path), ca_text)]:
         repo = os.path.join(OUT_DIR, fn)
         if not os.path.exists(repo):
             print(f'✗ 未找到 {fn}'); ok = False; continue
@@ -459,6 +511,8 @@ open(ur_path, 'w', encoding='utf-8').write(ur_text)
 print('=== 生成完成 ===')
 print(f'  rules.txt        拦截 {n_block} 条 ({os.path.getsize(rules_path)} 字节) — 订阅用')
 print(f'  user_rules.yaml  放行 {n_allow} 条 ({os.path.getsize(ur_path)} 字节) — 注入 user_rules')
+print(f'  watchlist.txt    观察 {n_watch} 条 — 不注入, 上游误伤时启用')
+print(f'  business_allow.yaml Clash 放行 {len(CLASH_ALLOW)} 条 — oc-adapt.py 读取')
 
 allr = [l for l in lines if l and not l.startswith('!')]
 all_allow = [r for rs in FORCE_ALLOW.values() for r in rs]

@@ -5,12 +5,16 @@ on:
     paths:
       - 'rules.txt'
       - 'user_rules.yaml'
+      - 'watchlist.txt'
+      - 'business_allow.yaml'
       - 'gen-own-ruleset.py'
       - '.github/workflows/validate.yml'
   pull_request:
     paths:
       - 'rules.txt'
       - 'user_rules.yaml'
+      - 'watchlist.txt'
+      - 'business_allow.yaml'
       - 'gen-own-ruleset.py'
 
 jobs:
@@ -72,6 +76,28 @@ jobs:
               sys.exit(1)
 
           print(f'校验通过: 拦截 {len(block)} 条 / 放行 {len(allow)} 条 / 合计 {len(block)+len(allow)} 条')
+          PY
+
+      - name: 校验双侧同源产物
+        run: |
+          python3 - <<'PY'
+          import re, sys
+          txt = open('business_allow.yaml', encoding='utf-8').read()
+          assert 'version: 1' in txt, 'business_allow.yaml 缺 version: 1'
+          rules = re.findall(r"^  - '([^']+)'$", txt, re.M)
+          assert len(rules) == 3, f'business_allow.yaml 规则数应为 3, 实际 {len(rules)}'
+          for r in rules:
+              assert re.match(r'^DOMAIN-SUFFIX,[a-z0-9.-]+,.+$', r), f'格式错误: {r}'
+          watch = [l.strip() for l in open('watchlist.txt', encoding='utf-8')
+                   if l.strip() and not l.startswith('!') and not l.startswith('#')]
+          allow = [l.strip() for l in open('user_rules.yaml', encoding='utf-8')
+                   if l.strip().startswith('- ')]
+          allowed = {re.match(r'^@@\|\|([^*]+)\^', a).group(1).lower()
+                     for a in allow if a.startswith("- '@@")}
+          watched = {re.match(r'^@@\|\|([^*]+)\^', a).group(1).lower()
+                     for a in watch if a.startswith('@@||')}
+          assert not (allowed & watched), '同一域名既放行又观察'
+          print(f'双侧同源校验通过: Clash 放行 {len(rules)} / AGH 放行 {len(allowed)} / 观察 {len(watched)}')
           PY
 
       - name: 业务域名零误伤检查
