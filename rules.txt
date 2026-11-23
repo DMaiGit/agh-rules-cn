@@ -1,6 +1,6 @@
 ! ============================================================
 ! 自有 AGH 规则集 — 面向中文网络环境的业务感知过滤
-! 生成日期: 2026-11-22
+! 生成日期: 2026-11-24
 ! 生成器: gen-own-ruleset.py (规则真源, 请勿直接手改本文件)
 ! 语法: AdGuard Home Adblock 语法 (与浏览器扩展兼容)
 !
@@ -131,9 +131,12 @@
 ||loganalytics.io^$important
 ||js.monitor.azure.com^$important
 
+! --- 设备遥测补位（原由 ShadowWhisperer Tracking 覆盖，该列表 2026-11-24 因整域误伤停用） ---
+||cl2.apple.com^$important
+||smoot.apple.com^$important
+
 ! --- 其他广告与错误上报 ---
 ||bat.bing.com^$important
-||sc-static.net^$important
 ||sentry.io^$important
 
 ! --- CRM / 营销自动化 / 邮件追踪 ---

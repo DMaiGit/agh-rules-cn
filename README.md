@@ -3,8 +3,8 @@
 > 电商、支付、流媒体、AI 的业务链路**零误伤**；纯追踪与垃圾广告**强制拦截**。
 > 与社区列表的根本差异不在"拦得多"，而在**能表达意图**。
 
-[![拦截规则](https://img.shields.io/badge/block-112-blue)](rules.txt)
-[![放行规则](https://img.shields.io/badge/allow-133-green)](user_rules.yaml)
+[![拦截规则](https://img.shields.io/badge/block-113-blue)](rules.txt)
+[![放行规则](https://img.shields.io/badge/allow-155-green)](user_rules.yaml)
 [![语法](https://img.shields.io/badge/syntax-AdGuard%20Adblock-green)](rules.txt)
 [![CI](https://img.shields.io/badge/CI-validate--passing-brightgreen)](.github/workflows/validate.yml)
 
@@ -86,8 +86,8 @@
 
 | 文件 | 内容 | 用途 |
 |---|---|---|
-| `rules.txt` | 112 条拦截规则 `||x^$important` | AGH 外部列表订阅 |
-| `user_rules.yaml` | 133 条放行规则 `@@||x^$important` | 注入 AGH 的 `user_rules` 段 |
+| `rules.txt` | 113 条拦截规则 `||x^$important` | AGH 外部列表订阅 |
+| `user_rules.yaml` | 155 条放行规则 `@@||x^$important` | 注入 AGH 的 `user_rules` 段 |
 
 社区列表做不到前者——它们只能靠"不列入黑名单"被动规避，且无法压过其他列表的放行。
 
@@ -106,19 +106,22 @@
 
 ## 三、覆盖范围
 
-### 业务必需放行（133 条，`user_rules.yaml`）
+### 业务必需放行（155 条，`user_rules.yaml`）
 
 | 分类 | 条数 | 典型内容 |
 |---|---|---|
-| 投放 / 广告后台 | 16 | `ads.google.com`、`ads.tiktok.com`、`business.tiktok.com`、`amazon-adsystem.com` |
+| 投放 / 广告后台 | 17 | `ads.google.com`、`ads.tiktok.com`、`business.tiktok.com`、`amazon-adsystem.com` |
 | TikTok / 抖音主站 API | 21 | `api.tiktokv.com`、`api16-normal-*.tiktokv.com`、`mcs.tiktokv.com` |
 | 支付链路 | 21 | `r.stripe.com`、`js.stripe.com`、`api.paypal.com`、`api.wise.com` |
 | 电商后台 / 卖家工具 | 14 | `sellercentral.amazon.com`、`api.etsy.com`、`api.shopify.com` |
 | 企业协作 / 开发工具 | 14 | `github.com`、`registry.npmjs.org`、`files.pythonhosted.org` |
 | AI 服务 | 10 | `anthropic.com`、`api.openai.com`、`generativelanguage.googleapis.com` |
 | 流媒体鉴权 | 11 | `netflix.com`、`api.spotify.com`、`googlevideo.com` |
+| IP 查询 / 网络诊断 | 11 | `ip.sb`、`ipinfo.io`、`ip.cn`、`ip138.com`、`ifconfig.me` |
+| 社媒登录回跳端点 | 10 | `graph.facebook.com`、`connect.facebook.net` |
+| 社区列表整域误伤修正 | 10 | `dns.iqiyi.com`、`dns.weixin.qq.com.cn`、`cdn-go.cn`、`sc-static.net`、`metacubex.one` |
 
-### 纯追踪 / 广告拦截（112 条，`rules.txt`）
+### 纯追踪 / 广告拦截（113 条，`rules.txt`）
 
 | 分类 | 条数 | 典型内容 |
 |---|---|---|
@@ -128,7 +131,8 @@
 | 分析归因 SDK | 15 | `appsflyer.com`、`adjust.com`、`amplitude`、`mixpanel`、`segment.io` |
 | 谷歌系分析广告 | 7 | `analytics.google.com`、`ssl.google-analytics.com`、`ad.doubleclick.cn` |
 | 微软系遥测 | 13 | `activity.windows.com`、`applicationinsights.io`、`events.data.microsoft.com` |
-| 其他广告 / 错误上报 | 3 | `bat.bing.com`、`sc-static.net`、`sentry.io` |
+| 设备遥测补位 | 2 | `cl2.apple.com`、`smoot.apple.com` |
+| 其他广告 / 错误上报 | 2 | `bat.bing.com`、`sentry.io` |
 
 ---
 
@@ -165,8 +169,7 @@ curl -s https://cdn.jsdelivr.net/gh/DMaiGit/agh-rules-cn@main/user_rules.yaml \
 | 底座 | HaGeZi Multi Normal | 通用广告与追踪 |
 | 底座 | AdGuard DNS filter | 通用域名规则 |
 | 底座 | HaGeZi Threat Intelligence (Medium) | 威胁情报 |
-| 专项 | ShadowWhisperer Tracking | 追踪器专项 |
-| 专项 | Steven Black List | 追踪 + 恶意域名 |
+| ~~专项~~ | ~~ShadowWhisperer Tracking~~ | **已于 2026-11-24 停用**：对 `googletagmanager.com`、`safebrowsing.googleapis.com`、`cdn-go.cn`、`autonavi.com`、`ip.cn`、`ip138.com`、`ifconfig.me`、`gateway.instagram.com` 做**整域拦截**，实测造成腾讯文档 CDN、高德、IP 查询、Chrome 安全浏览、Instagram 不可用 || 专项 | Steven Black List | 追踪 + 恶意域名 |
 | 中文广告 | CHN: anti-AD | 中文站点广告专项 |
 | 弹窗广告 | AdGuard DNS Popup Hosts | 弹窗站点（$dnsrewrite） |
 | 短链追踪 | HaGeZi URL Shortener | 国内短链服务 |
